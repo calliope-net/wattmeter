@@ -1,7 +1,7 @@
 
 //% color=#002F5F icon="\uf243" block="Wattmeter" weight=01
 namespace wattmeter
-/*
+/* 230827 i2c-15Erweiterungen #14
 [Hardware] https://www.dfrobot.com/product-1827.html
 [Datasheet] https://github.com/DFRobot/Wiki/raw/master/SEN0291/res/INA219.pdf
             Register ab Seite 18
@@ -14,6 +14,8 @@ https://wiki.dfrobot.com/Gravity:%20I2C%20Digital%20Wattmeter%20SKU:%20SEN0291
 
 https://github.com/DFRobot/DFRobot_INA219
 https://github.com/DFRobot/DFRobot_INA219/blob/master/Python/RespberryPi/DFRobot_INA219.py
+
+Modul wurde geliefert mit eingestellter i2c-Adresse 0x45; DIP Schalter mit Schutzfolie zugeklebt
 
 Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßner im August 2023
 */ {
@@ -46,6 +48,8 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
         return pins.i2cWriteBuffer(pADDR, bu, false) == 0
     }
 
+    //% group="i2c init"
+    //% block="i2c %pADDR begin"
     export function begin(pADDR: eADDR) { // Initialize I2C bus and configure INA219 config register before reading data
         if (!scan(pADDR)) {
             return false
@@ -53,15 +57,27 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
             cal_value = 4096
             set_bus_RNG(pADDR, eIna219BusVolRange.bus_vol_range_32V)    // 1
             set_PGA(pADDR, eIna219PGABits.PGA_bits_8)                   // 3
+            control.waitMicros(1000)
             set_bus_ADC(pADDR, eIna219AdcBits.adc_bits_12, eIna219AdcSample.adc_sample_8)   // 3 3
+            control.waitMicros(1000)
             set_shunt_ADC(pADDR, eIna219AdcBits.adc_bits_12, eIna219AdcSample.adc_sample_8) // 3 3
+            control.waitMicros(1000)
             set_mode(pADDR, eInaMode.shunt_and_bus_vol_con) // 7
             return true
         }
     }
 
-    export function linear_cal(pADDR: eADDR) {
-
+    //% group="i2c init"
+    //% block="i2c %pADDR linear_cal ina_mA %ina219_reading_mA ext_mA %ext_meter_reading_mA"
+    export function linear_cal(pADDR: eADDR, ina219_reading_mA: number, ext_meter_reading_mA: number) { // Linear calibration
+        /*
+        @param ina219_reading_mA    The current measured by INA219 (before calibration)
+        @param ext_meter_reading_mA  Actual measured current
+        */
+        //ina219_reading_mA = float(ina219_reading_mA)
+        //ext_meter_reading_mA = float(ext_meter_reading_mA)
+        cal_value = Math.trunc((ext_meter_reading_mA / ina219_reading_mA) * cal_value) & 0xFFFE
+        write_register(pADDR, eRegister.REG_CALIBRATION, cal_value)
     }
 
     //% group="i2c init"
@@ -104,10 +120,9 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
     }
 
 
+    // ========== advanced=true
 
-    // ========== 
-
-
+    // ========== group="i2c Configuration Register"
 
     export enum eIna219BusVolRange {    // Bus Voltage Range
         bus_vol_range_16V = 0,  // Voltage range ±16V
@@ -117,6 +132,9 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
         const bus_vol_range_32V = 1 // Voltage range ±32V
         */
     }
+    //% group="i2c Configuration Register" advanced=true
+    //% block="i2c %pADDR set bus RNG %value" weight=5
+    //% value.defl=wattmeter.eIna219BusVolRange.bus_vol_range_32V
     export function set_bus_RNG(pADDR: eADDR, value: eIna219BusVolRange) { // Set BRNG (Bus Voltage Range)
         let conf = 0
         conf = read_ina_reg(pADDR, eRegister.REG_CONFIG)
@@ -141,6 +159,9 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
         const PGA_bits_8 = 3 // GAIN:/8,Range ±320 mV     default value 11 ±320 mV
         */
     }
+    //% group="i2c Configuration Register" advanced=true
+    //% block="i2c %pADDR set PGA %bits" weight=4
+    //% bits.defl=wattmeter.eIna219PGABits.PGA_bits_8
     export function set_PGA(pADDR: eADDR, bits: eIna219PGABits) { // Set PGA parameter (Shunt Voltage Only)
         let conf = 0
         conf = read_ina_reg(pADDR, eRegister.REG_CONFIG)
@@ -184,6 +205,9 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
         const adc_sample_128 = 7
         */
     }
+    //% group="i2c Configuration Register" advanced=true
+    //% block="i2c %pADDR set bus ADC %bits %sample" weight=3
+    //% bits.defl=wattmeter.eIna219AdcBits.adc_bits_12
     export function set_bus_ADC(pADDR: eADDR, bits: eIna219AdcBits, sample: eIna219AdcSample) {
         let conf = 0
         let value = 0
@@ -193,14 +217,18 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
         if (bits < eIna219AdcBits.adc_bits_12) {
             value = bits
         } else {
-            value = 0x80 | sample
+            value = 0x08 | sample
         }
+        //lcd16x2rgb.writeText(lcd16x2rgb.eADDR_LCD.LCD_16x2, 1, 0, 4, lcd16x2rgb.eAlign.left, value.toString())
         conf = read_ina_reg(pADDR, eRegister.REG_CONFIG)
         conf &= ~(0x0f << 7)    // FEDCBA9876543210 // Bit 2^10 BADC4 - 2^7 BADC1
         conf |= value << 7      //      0011
         write_register(pADDR, eRegister.REG_CONFIG, conf)
     }
 
+    //% group="i2c Configuration Register" advanced=true
+    //% block="i2c %pADDR set shunt ADC %bits %sample" weight=2
+    //% bits.defl=wattmeter.eIna219AdcBits.adc_bits_12
     export function set_shunt_ADC(pADDR: eADDR, bits: eIna219AdcBits, sample: eIna219AdcSample) {
         let conf = 0
         let value = 0
@@ -210,8 +238,9 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
         if (bits < eIna219AdcBits.adc_bits_12) {
             value = bits
         } else {
-            value = 0x80 | sample
+            value = 0x08 | sample
         }
+        //lcd16x2rgb.writeText(lcd16x2rgb.eADDR_LCD.LCD_16x2, 1, 5, 9, lcd16x2rgb.eAlign.left, value.toString())
         conf = read_ina_reg(pADDR, eRegister.REG_CONFIG)
         conf &= ~(0x0f << 3)    // FEDCBA9876543210 // Bit 2^6 SADC3 - 2^3 SADC1
         conf |= value << 3      //          0011
@@ -241,6 +270,9 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
         const shunt_and_bus_vol_con = 7 // Shunt and bus, continuous
         */
     }
+    //% group="i2c Configuration Register" advanced=true
+    //% block="i2c %pADDR set mode %mode" weight=1
+    //% mode.defl=wattmeter.eInaMode.shunt_and_bus_vol_con
     export function set_mode(pADDR: eADDR, mode: eInaMode) { // Set operation Mode
         let conf = 0
         conf = read_ina_reg(pADDR, eRegister.REG_CONFIG)
