@@ -1,13 +1,15 @@
 
-namespace wattmeter {
-    //% group="i2c Configuration Register"  subcategory="Configuration"
+namespace wattmeter
+/*
+ein Block und ENUMs zur Einstellung des Configuration Register
+als ein 16-bit Wert - ohne bitweise Operationen
+*/ {
+
+    //% group="i2c Configuration Register" subcategory="Configuration"
     //% block="i2c %pADDR Configuration Register | %pBRNG | Shunt Voltage Gain and Range | %pPG | Bus ADC Resolution/Averaging | %pBADC | Shunt ADC Resolution/Averaging | %pSADC | Operating Mode | %mode"
     //% mode.defl=wattmeter.eInaMode.shunt_and_bus_vol_con
     export function config(pADDR: eADDR, pBRNG: eBRNG, pPG: ePG, pBADC: eBADC, pSADC: eSADC, pMODE: eMODE) {
         let conf = pBRNG | pPG | pBADC | pSADC | pMODE
-        //conf = read_ina_reg(pADDR, eRegister.REG_CONFIG)
-        //conf &= ~0x07       // FEDCBA9876543210 // Bit 2^2 MODE3 - 2^0 MODE1
-        //conf |= mode        //              111 // Shunt and bus, continuous
         write_register(pADDR, eRegister.REG_CONFIG, conf)
     }
 

@@ -10,7 +10,8 @@
         "main.blocks",
         "main.ts",
         "wattmeter.ts",
-        "wattmeter-config.ts"
+        "wattmeter-config.ts",
+        "wattmeter-exclude.ts"
     ],
     "testFiles": [
         "test.ts"
@@ -24,5 +25,5 @@
         "calliopemini",
         "microbit"
     ],
-    "preferredEditor": "blocksprj"
+    "preferredEditor": "tsprj"
 }
