@@ -17,10 +17,29 @@ https://github.com/DFRobot/DFRobot_INA219/blob/master/Python/RespberryPi/DFRobot
 
 Modul wurde geliefert mit eingestellter i2c-Adresse 0x45; DIP Schalter mit Schutzfolie zugeklebt
 
+Calibration 
+In the actual measurement environment, measurement errors come from many sources. 
+However, for the Gravity: I2C Digital Wattmeter, the voltage measurement does not need to be calibrated, 
+and the current measurement error mainly comes from the error of the resistance of the sampling resistor, 
+which will have a significant impact on the current measurement. 
+If calibration is not performed, the relative error of the maximum current measurement is about 3%. 
+If a single-point linear calibration is performed using a high-precision multimeter or an electronic load, 
+the linearity error of the system can be effectively eliminated, and the maximum relative error can be up to ±0.2%.
+
+If you don't have a regulated power supply nor a DC electronic load on the hand, follow the steps below to calibrate the current measurement:
+- Connect the Arduino UNO, multimeter (switch to amperemeter) and load (gas sensor, motor or LCD screen etc. ) as shown below. 
+    It is recommended that the load power consumption should no less than 100mA.
+- Upload the following sample code to Arduino UNO.
+- Modify the value of the variable "float ina219Reading_mA = 1000;" according to the readings of the serial port print "Current" 
+    and "float extMeterReading_mA = 1000;" according to the current readings of the multimeter.
+- Upload the sample code to Arduino UNO again.
+- Calibration finished.
+
+
 Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßner im August 2023
 */ {
     export enum eADDR {
-        Wattmeter_x45 = 0x45, Wattmeter = 0x40, Wattmeter_x41 = 0x41, Wattmeter_x44 = 0x44
+        Wattmeter_x45 = 0x45, Wattmeter_x40 = 0x40, Wattmeter_x41 = 0x41, Wattmeter_x44 = 0x44
     }
 
     export enum eRegister {
@@ -34,8 +53,8 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
     const INA219_CONFIG_RESET = 0x8000 // Config reset register
 
 
-    let cal_value: number // uint16_t
-    let BusRange: number, Pga: number, Badc: number, Sadc: number, Mode: number // uint8_t
+    //let cal_value: number = 4096 // uint16_t
+    //let BusRange: number, Pga: number, Badc: number, Sadc: number, Mode: number // uint8_t
 
     // ========== group="i2c init"
 
@@ -49,33 +68,33 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
 
     //% group="i2c init"
     //% block="i2c %pADDR begin"
-    export function begin(pADDR: eADDR) { // Initialize I2C bus and configure INA219 config register before reading data
+    /* export function begin(pADDR: eADDR) { // Initialize I2C bus and configure INA219 config register before reading data
         if (!is_connected(pADDR)) {
             return false
         } else {
             cal_value = 4096
             set_bus_RNG(pADDR, eIna219BusVolRange.bus_vol_range_32V)    // 1
             set_PGA(pADDR, eIna219PGABits.PGA_bits_8)                   // 3
-            control.waitMicros(1000)
             set_bus_ADC(pADDR, eIna219AdcBits.adc_bits_12, eIna219AdcSample.adc_sample_8)   // 3 3
-            control.waitMicros(1000)
             set_shunt_ADC(pADDR, eIna219AdcBits.adc_bits_12, eIna219AdcSample.adc_sample_8) // 3 3
-            control.waitMicros(1000)
             set_mode(pADDR, eInaMode.shunt_and_bus_vol_con) // 7
             return true
         }
-    }
+    } */
 
     //% group="i2c init"
-    //% block="i2c %pADDR linear_cal ina_mA %ina219_reading_mA ext_mA %ext_meter_reading_mA"
-    export function linear_cal(pADDR: eADDR, ina219_reading_mA: number, ext_meter_reading_mA: number) { // Linear calibration
+    //% block="i2c %pADDR Calibration ina mA %ina219Reading_mA ext mA %extMeterReading_mA"
+    //% ina219Reading_mA.defl=1000 extMeterReading_mA.defl=1000
+    export function linear_cal(pADDR: eADDR, ina219Reading_mA: number, extMeterReading_mA: number) { // Linear calibration
         /*
         @param ina219_reading_mA    The current measured by INA219 (before calibration)
         @param ext_meter_reading_mA  Actual measured current
         */
         //ina219_reading_mA = float(ina219_reading_mA)
         //ext_meter_reading_mA = float(ext_meter_reading_mA)
-        cal_value = Math.trunc((ext_meter_reading_mA / ina219_reading_mA) * cal_value) & 0xFFFE
+        let cal_value = read_ina_reg_Unsigned(pADDR, eRegister.REG_CALIBRATION)
+        if (cal_value = 0) { cal_value = 4096 }
+        cal_value = Math.trunc((extMeterReading_mA / ina219Reading_mA) * cal_value) & 0xFFFE
         write_register(pADDR, eRegister.REG_CALIBRATION, cal_value)
     }
 
@@ -85,7 +104,11 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
         write_register(pADDR, eRegister.REG_CONFIG, INA219_CONFIG_RESET) // 0x8000
     }
 
-
+    //% group="i2c init"
+    //% block="i2c %pADDR Calibration Register %calibration_value"
+    //% calibration_value.defl=4096
+    //% inlineInputMode=external
+    export function writeCALIBRATION(pADDR: eADDR, calibration_value: number) { write_register(pADDR, eRegister.REG_CALIBRATION, calibration_value) }
 
 
 
@@ -93,32 +116,36 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
     // ========== group="i2c Messwerte lesen"
 
     //% group="i2c Messwerte lesen"
-    //% block="i2c %pADDR get shunt voltage mV"
+    //% block="i2c %pADDR Shunt Spannung U in mV"
     export function get_shunt_voltage_mV(pADDR: eADDR) { // get the ShuntVoltage （Voltage of the sampling resistor, IN+ to NI-)
         return read_ina_reg(pADDR, eRegister.REG_SHUNTVOLTAGE)  // py
         // return read_ina_reg(pADDR, eRegister.REG_SHUNTVOLTAGE) * 0.01  // cpp
     }
 
     //% group="i2c Messwerte lesen"
-    //% block="i2c %pADDR get bus voltage V"
+    //% block="i2c %pADDR Spannung U in V"
     export function get_bus_voltage_V(pADDR: eADDR) { // get the BusVoltage （Voltage of IN- to GND)
-        return (read_ina_reg(pADDR, eRegister.REG_BUSVOLTAGE) >> 1) * 0.001             // py   0.001/2=0.0005
-        //return (read_ina_reg_Unsigned(pADDR, eRegister.REG_BUSVOLTAGE) >> 3) * 0.004    // cpp  0.004/8=0.0005
+        //return (read_ina_reg(pADDR, eRegister.REG_BUSVOLTAGE) >> 1) * 0.001             // py   0.001/2=0.0005
+
+        // die letzten 3 Bit 2-1-0 gehögen nicht zum Messwert | - | CNVR | OVF
+        return (read_ina_reg_Unsigned(pADDR, eRegister.REG_BUSVOLTAGE) >> 3) * 0.004    // cpp  0.004/8=0.0005
     }
 
     //% group="i2c Messwerte lesen"
-    //% block="i2c %pADDR get power mW"
+    //% block="i2c %pADDR Leistung P=U*I in mW"
     export function get_power_mW(pADDR: eADDR) { // get the Current(Current flows across IN+ and IN-)
         return read_ina_reg(pADDR, eRegister.REG_POWER) * 20
     }
 
     //% group="i2c Messwerte lesen"
-    //% block="i2c %pADDR get current mA"
+    //% block="i2c %pADDR Strom I in mA"
     export function get_current_mA(pADDR: eADDR) { // get the Current(Current flows across IN+ and IN-)
         return read_ina_reg(pADDR, eRegister.REG_CURRENT)
     }
 
-
+    export function mathOverflowFlag(pADDR: eADDR) {
+        read_register(pADDR, eRegister.REG_BUSVOLTAGE)
+    }
 
 
     // ========== advanced=true

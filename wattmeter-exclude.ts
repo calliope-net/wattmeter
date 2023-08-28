@@ -1,8 +1,7 @@
 
 namespace wattmeter
 /*
-*/
-{
+*/ {
 
 
     // ========== advanced=true
@@ -20,7 +19,7 @@ namespace wattmeter
     //% group="i2c Configuration Register" advanced=true
     //% block="i2c %pADDR set bus RNG %value" weight=5
     //% value.defl=wattmeter.eIna219BusVolRange.bus_vol_range_32V
-    export function set_bus_RNG(pADDR: eADDR, value: eIna219BusVolRange) { // Set BRNG (Bus Voltage Range)
+    function set_bus_RNG(pADDR: eADDR, value: eIna219BusVolRange) { // Set BRNG (Bus Voltage Range)
         let conf = 0
         conf = read_ina_reg(pADDR, eRegister.REG_CONFIG)
         conf &= ~(0x01 << 13)   // FEDCBA9876543210 // Bit 2^13 BRNG
@@ -47,7 +46,7 @@ namespace wattmeter
     //% group="i2c Configuration Register" advanced=true
     //% block="i2c %pADDR set PGA %bits" weight=4
     //% bits.defl=wattmeter.eIna219PGABits.PGA_bits_8
-    export function set_PGA(pADDR: eADDR, bits: eIna219PGABits) { // Set PGA parameter (Shunt Voltage Only)
+    function set_PGA(pADDR: eADDR, bits: eIna219PGABits) { // Set PGA parameter (Shunt Voltage Only)
         let conf = 0
         conf = read_ina_reg(pADDR, eRegister.REG_CONFIG)
         conf &= ~(0x03 << 11)   // FEDCBA9876543210 // Bit 2^12 PG1, 2^11 PG0
@@ -93,7 +92,7 @@ namespace wattmeter
     //% group="i2c Configuration Register" advanced=true
     //% block="i2c %pADDR set bus ADC %bits %sample" weight=3
     //% bits.defl=wattmeter.eIna219AdcBits.adc_bits_12
-    export function set_bus_ADC(pADDR: eADDR, bits: eIna219AdcBits, sample: eIna219AdcSample) {
+    function set_bus_ADC(pADDR: eADDR, bits: eIna219AdcBits, sample: eIna219AdcSample) {
         let conf = 0
         let value = 0
         if (bits < eIna219AdcBits.adc_bits_12 && sample > eIna219AdcSample.adc_sample_1) {
@@ -114,7 +113,7 @@ namespace wattmeter
     //% group="i2c Configuration Register" advanced=true
     //% block="i2c %pADDR set shunt ADC %bits %sample" weight=2
     //% bits.defl=wattmeter.eIna219AdcBits.adc_bits_12
-    export function set_shunt_ADC(pADDR: eADDR, bits: eIna219AdcBits, sample: eIna219AdcSample) {
+    function set_shunt_ADC(pADDR: eADDR, bits: eIna219AdcBits, sample: eIna219AdcSample) {
         let conf = 0
         let value = 0
         if (bits < eIna219AdcBits.adc_bits_12 && sample > eIna219AdcSample.adc_sample_1) {
@@ -157,7 +156,7 @@ namespace wattmeter
     //% group="i2c Configuration Register" advanced=true
     //% block="i2c %pADDR set mode %mode" weight=1
     //% mode.defl=wattmeter.eInaMode.shunt_and_bus_vol_con
-    export function set_mode(pADDR: eADDR, mode: eInaMode) { // Set operation Mode
+    function set_mode(pADDR: eADDR, mode: eInaMode) { // Set operation Mode
         let conf = 0
         conf = read_ina_reg(pADDR, eRegister.REG_CONFIG)
         conf &= ~0x07       // FEDCBA9876543210 // Bit 2^2 MODE3 - 2^0 MODE1
