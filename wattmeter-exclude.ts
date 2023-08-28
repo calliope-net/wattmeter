@@ -21,7 +21,7 @@ namespace wattmeter
     //% value.defl=wattmeter.eIna219BusVolRange.bus_vol_range_32V
     function set_bus_RNG(pADDR: eADDR, value: eIna219BusVolRange) { // Set BRNG (Bus Voltage Range)
         let conf = 0
-        conf = read_ina_reg(pADDR, eRegister.REG_CONFIG)
+        conf = read_Register_UInt16BE(pADDR, eRegister.REG_CONFIG)
         conf &= ~(0x01 << 13)   // FEDCBA9876543210 // Bit 2^13 BRNG
         conf |= value << 13     //   1
         write_register(pADDR, eRegister.REG_CONFIG, conf)
@@ -48,7 +48,7 @@ namespace wattmeter
     //% bits.defl=wattmeter.eIna219PGABits.PGA_bits_8
     function set_PGA(pADDR: eADDR, bits: eIna219PGABits) { // Set PGA parameter (Shunt Voltage Only)
         let conf = 0
-        conf = read_ina_reg(pADDR, eRegister.REG_CONFIG)
+        conf = read_Register_UInt16BE(pADDR, eRegister.REG_CONFIG)
         conf &= ~(0x03 << 11)   // FEDCBA9876543210 // Bit 2^12 PG1, 2^11 PG0
         conf |= bits << 11      //    11            // GAIN:/8,Range ±320 mV
         write_register(pADDR, eRegister.REG_CONFIG, conf)
@@ -104,7 +104,7 @@ namespace wattmeter
             value = 0x08 | sample
         }
         //lcd16x2rgb.writeText(lcd16x2rgb.eADDR_LCD.LCD_16x2, 1, 0, 4, lcd16x2rgb.eAlign.left, value.toString())
-        conf = read_ina_reg(pADDR, eRegister.REG_CONFIG)
+        conf = read_Register_UInt16BE(pADDR, eRegister.REG_CONFIG)
         conf &= ~(0x0f << 7)    // FEDCBA9876543210 // Bit 2^10 BADC4 - 2^7 BADC1
         conf |= value << 7      //      0011
         write_register(pADDR, eRegister.REG_CONFIG, conf)
@@ -125,7 +125,7 @@ namespace wattmeter
             value = 0x08 | sample
         }
         //lcd16x2rgb.writeText(lcd16x2rgb.eADDR_LCD.LCD_16x2, 1, 5, 9, lcd16x2rgb.eAlign.left, value.toString())
-        conf = read_ina_reg(pADDR, eRegister.REG_CONFIG)
+        conf = read_Register_UInt16BE(pADDR, eRegister.REG_CONFIG)
         conf &= ~(0x0f << 3)    // FEDCBA9876543210 // Bit 2^6 SADC3 - 2^3 SADC1
         conf |= value << 3      //          0011
         write_register(pADDR, eRegister.REG_CONFIG, conf)
@@ -158,7 +158,7 @@ namespace wattmeter
     //% mode.defl=wattmeter.eInaMode.shunt_and_bus_vol_con
     function set_mode(pADDR: eADDR, mode: eInaMode) { // Set operation Mode
         let conf = 0
-        conf = read_ina_reg(pADDR, eRegister.REG_CONFIG)
+        conf = read_Register_UInt16BE(pADDR, eRegister.REG_CONFIG)
         conf &= ~0x07       // FEDCBA9876543210 // Bit 2^2 MODE3 - 2^0 MODE1
         conf |= mode        //              111 // Shunt and bus, continuous
         write_register(pADDR, eRegister.REG_CONFIG, conf)
