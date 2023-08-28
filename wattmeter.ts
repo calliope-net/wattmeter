@@ -1,7 +1,7 @@
 
 //% color=#002F5F icon="\uf243" block="Wattmeter" weight=01
 namespace wattmeter
-/* 230827 i2c-15Erweiterungen #14
+/* 230828
 [Hardware] https://www.dfrobot.com/product-1827.html
 [Datasheet] https://github.com/DFRobot/Wiki/raw/master/SEN0291/res/INA219.pdf
             Register ab Seite 18
