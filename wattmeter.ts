@@ -40,18 +40,17 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
     // ========== group="i2c init"
 
     //% group="i2c init"
-    //% block="i2c %pADDR scan"
-    export function scan(pADDR: eADDR): boolean {
+    //% block="i2c %pADDR is connected"
+    export function is_connected(pADDR: eADDR): boolean {
         let bu = Buffer.create(1)
         bu.setUint8(0, 0)
-        //bu.setNumber(NumberFormat.UInt16BE, 1, value)
-        return pins.i2cWriteBuffer(pADDR, bu, false) == 0
+        return pins.i2cWriteBuffer(pADDR, bu) == 0
     }
 
     //% group="i2c init"
     //% block="i2c %pADDR begin"
     export function begin(pADDR: eADDR) { // Initialize I2C bus and configure INA219 config register before reading data
-        if (!scan(pADDR)) {
+        if (!is_connected(pADDR)) {
             return false
         } else {
             cal_value = 4096
