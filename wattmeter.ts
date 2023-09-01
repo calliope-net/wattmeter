@@ -66,15 +66,6 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
         writeCALIBRATION(pADDR, calibration_value)
     }
 
-    //% group="Wattmeter Konfiguration"
-    //% block="i2c %pADDR i2c connected" weight=6
-    export function is_connected(pADDR: eADDR): boolean {
-        let bu = Buffer.create(1)
-        bu.setUint8(0, 0)
-        i2cWriteBufferError = pins.i2cWriteBuffer(pADDR, bu)
-        return i2cWriteBufferError == 0
-    }
-
 
     // ========== group="Messwerte lesen"
 
@@ -106,25 +97,8 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
         // return read_Register_mit_Vorzeichen_Int16BE(pADDR, eRegister.REG_SHUNTVOLTAGE) * 0.01  // cpp
     }
 
-    export enum eFlags {
-        //% block="Math Overflow Flag"
-        OVF,
-        //% block="Conversion Ready"
-        CNVR
-    }
 
-    //% group="Messwerte lesen"
-    //% block="i2c %pADDR %pFlag" weight=2
-    export function get_Flag(pADDR: eADDR, pFlag: eFlags): boolean {
-        if (pFlag == eFlags.OVF) {
-            return (read_Register_UInt16BE(pADDR, eRegister.REG_BUSVOLTAGE) & 0x01) != 0
-        } else {
-            return (read_Register_UInt16BE(pADDR, eRegister.REG_BUSVOLTAGE) & 0x02) != 0
-        }
-    }
-
-
-    //% group="Messwerte als Text lesen"
+    // ========== group="Messwerte als Text lesen"
 
     export enum eStatuszeile {
         //% block="V | mA"
@@ -134,7 +108,6 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
         //% block="CONFIG | CALIBRATION"
         CONFIG_CALIBRATION
     }
-
     //% group="Messwerte als Text lesen"
     //% block="i2c %pADDR Text %nummer"
     //% nummer.min=0 nummer.max=2
@@ -143,7 +116,7 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
             case eStatuszeile.V_mA: {
                 return Math.roundWithPrecision(get_bus_voltage_V(pADDR), 2) + "V "
                     + get_current_mA(pADDR) + "mA"
-                    + (get_Flag(pADDR, eFlags.OVF) ? " OV" : "")
+                    + (getStatus(pADDR, eStatus.OVF) ? " OV" : "")
             }
             case eStatuszeile.mV_mW: {
                 return get_shunt_voltage_mV(pADDR) + "mV "
@@ -156,6 +129,37 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
                     + read_Register_mit_Vorzeichen_Int16BE(pADDR, eRegister.REG_CALIBRATION)
             }
             default: return "Statuszeile"
+        }
+    }
+
+
+    // ========== group="Status"
+
+    export enum eStatus {
+        //% block="Math Overflow Flag"
+        OVF,
+        //% block="Conversion Ready"
+        CNVR,
+        //% block="i2c connected"
+        i2c_connected
+    }
+    //% group="Status"
+    //% block="i2c %pADDR Status %pStatus"
+    export function getStatus(pADDR: eADDR, pStatus: eStatus): boolean {
+        switch (pStatus) {
+            case eStatus.OVF: {
+                return (read_Register_UInt16BE(pADDR, eRegister.REG_BUSVOLTAGE) & 0x01) != 0
+            }
+            case eStatus.CNVR: {
+                return (read_Register_UInt16BE(pADDR, eRegister.REG_BUSVOLTAGE) & 0x02) != 0
+            }
+            case eStatus.i2c_connected: {
+                let bu = Buffer.create(1)
+                bu.setUint8(0, 0)
+                i2cWriteBufferError = pins.i2cWriteBuffer(pADDR, bu)
+                return i2cWriteBufferError == 0
+            }
+            default: return false
         }
     }
 
