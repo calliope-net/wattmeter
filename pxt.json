@@ -10,8 +10,7 @@
         "main.blocks",
         "main.ts",
         "wattmeter.ts",
-        "wattmeter-config.ts",
-        "wattmeter-exclude.ts"
+        "wattmeter-config.ts"
     ],
     "testFiles": [
         "test.ts"
