@@ -55,16 +55,12 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
 
     let i2cWriteBufferError: number = 0 // Fehlercode vom letzten WriteBuffer (0 ist kein Fehler)
 
-    //let cal_value: number = 4096 // uint16_t
-    //let BusRange: number, Pga: number, Badc: number, Sadc: number, Mode: number // uint8_t
-
-
     // ========== group="Wattmeter Konfiguration"
 
     //% group="Wattmeter Konfiguration"
-    //% block="i2c %pADDR beim Start Calibration %calibration_value" weight=8
+    //% block="i2c %pADDR beim Start || Calibration %calibration_value" weight=8
     //% calibration_value.defl=4096
-    export function reset(pADDR: eADDR, calibration_value: number) {
+    export function reset(pADDR: eADDR, calibration_value?: number) {
         //write_register(pADDR, eRegister.REG_CONFIG, INA219_CONFIG_RESET) // 0x8000
         writeCONFIGURATION(pADDR, 0x8000)
         writeCALIBRATION(pADDR, calibration_value)
@@ -80,49 +76,30 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
     }
 
 
-    //% group="i2c init"
-    //% block="i2c %pADDR begin"
-    /* export function begin(pADDR: eADDR) { // Initialize I2C bus and configure INA219 config register before reading data
-        if (!is_connected(pADDR)) {
-            return false
-        } else {
-            cal_value = 4096
-            set_bus_RNG(pADDR, eIna219BusVolRange.bus_vol_range_32V)    // 1
-            set_PGA(pADDR, eIna219PGABits.PGA_bits_8)                   // 3
-            set_bus_ADC(pADDR, eIna219AdcBits.adc_bits_12, eIna219AdcSample.adc_sample_8)   // 3 3
-            set_shunt_ADC(pADDR, eIna219AdcBits.adc_bits_12, eIna219AdcSample.adc_sample_8) // 3 3
-            set_mode(pADDR, eInaMode.shunt_and_bus_vol_con) // 7
-            return true
-        }
-    } */
+    // ========== group="Messwerte lesen"
 
-
-
-
-    // ========== group="i2c Messwerte lesen"
-
-    //% group="i2c Messwerte lesen"
+    //% group="Messwerte lesen"
     //% block="i2c %pADDR Spannung U in V" weight=8
     export function get_bus_voltage_V(pADDR: eADDR) { // get the BusVoltage （Voltage of IN- to GND)
-        //return (read_ina_reg(pADDR, eRegister.REG_BUSVOLTAGE) >> 1) * 0.001             // py   0.001/2=0.0005
+        //return (read_ina_reg(pADDR, eRegister.REG_BUSVOLTAGE) >> 1) * 0.001            // py   0.001/2=0.0005
 
         // die letzten 3 Bit 2-1-0 gehögen nicht zum Messwert | - | CNVR | OVF
         return (read_Register_UInt16BE(pADDR, eRegister.REG_BUSVOLTAGE) >> 3) * 0.004    // cpp  0.004/8=0.0005
     }
 
-    //% group="i2c Messwerte lesen"
+    //% group="Messwerte lesen"
     //% block="i2c %pADDR Strom I in mA" weight=7
     export function get_current_mA(pADDR: eADDR) { // get the Current(Current flows across IN+ and IN-)
         return read_Register_mit_Vorzeichen_Int16BE(pADDR, eRegister.REG_CURRENT)
     }
 
-    //% group="i2c Messwerte lesen"
+    //% group="Messwerte lesen"
     //% block="i2c %pADDR Leistung P=U*I in mW" weight=6
     export function get_power_mW(pADDR: eADDR) { // get the Current(Current flows across IN+ and IN-)
         return read_Register_mit_Vorzeichen_Int16BE(pADDR, eRegister.REG_POWER) * 20
     }
 
-    //% group="i2c Messwerte lesen"
+    //% group="Messwerte lesen"
     //% block="i2c %pADDR Shunt Spannung U in mV" weight=4
     export function get_shunt_voltage_mV(pADDR: eADDR) { // get the ShuntVoltage （Voltage of the sampling resistor, IN+ to NI-)
         return read_Register_mit_Vorzeichen_Int16BE(pADDR, eRegister.REG_SHUNTVOLTAGE)  // py
@@ -136,7 +113,7 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
         CNVR
     }
 
-    //% group="i2c Messwerte lesen"
+    //% group="Messwerte lesen"
     //% block="i2c %pADDR %pFlag" weight=2
     export function get_Flag(pADDR: eADDR, pFlag: eFlags): boolean {
         if (pFlag == eFlags.OVF) {
@@ -147,23 +124,59 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
     }
 
 
+    //% group="Messwerte als Text lesen"
+
+    export enum eStatuszeile {
+        //% block="V | mA"
+        V_mA,
+        //% block="mV | mW | Ready/Overflow"
+        mV_mW,
+        //% block="CONFIG | CALIBRATION"
+        CONFIG_CALIBRATION
+    }
+
+    //% group="Messwerte als Text lesen"
+    //% block="i2c %pADDR Text %nummer"
+    //% nummer.min=0 nummer.max=2
+    export function statuszeile(pADDR: eADDR, nummer: eStatuszeile): string {
+        switch (nummer) {
+            case eStatuszeile.V_mA: {
+                return Math.roundWithPrecision(get_bus_voltage_V(pADDR), 2) + "V "
+                    + get_current_mA(pADDR) + "mA"
+                    + (get_Flag(pADDR, eFlags.OVF) ? " OV" : "")
+            }
+            case eStatuszeile.mV_mW: {
+                return get_shunt_voltage_mV(pADDR) + "mV "
+                    + get_power_mW(pADDR) + "mW "
+                    + (read_Register_UInt16BE(pADDR, eRegister.REG_BUSVOLTAGE) & 0x07)
+            }
+            case eStatuszeile.CONFIG_CALIBRATION: {
+                return read_register(pADDR, eRegister.REG_CONFIG).toHex() + " "
+                    + read_register(pADDR, eRegister.REG_CALIBRATION).toHex() + " "
+                    + read_Register_mit_Vorzeichen_Int16BE(pADDR, eRegister.REG_CALIBRATION)
+            }
+            default: return "Statuszeile"
+        }
+    }
+
+
 
     // ========== advanced=true
 
     // ========== group="i2c Register schreiben"
 
     //% group="i2c Register schreiben" advanced=true
-    //% block="i2c %pADDR Configuration Register %value" weight=8
+    //% block="i2c %pADDR Configuration %value" weight=8
     //% value.defl=14751
-    //% inlineInputMode=external
+    // inlineInputMode=external
     export function writeCONFIGURATION(pADDR: eADDR, value: number) {
         write_register(pADDR, eRegister.REG_CONFIG, value)
     }
 
     //% group="i2c Register schreiben" advanced=true
-    //% block="i2c %pADDR Calibration Register %value" weight=6
+    //% block="i2c %pADDR Calibration %value" weight=6
     //% value.defl=4096
-    //% inlineInputMode=external
+    // inlineInputMode=external
     export function writeCALIBRATION(pADDR: eADDR, value: number) {
         write_register(pADDR, eRegister.REG_CALIBRATION, value)
     }
@@ -208,7 +221,6 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
         i2cWriteBufferError = pins.i2cWriteBuffer(pADDR, bu, true)
         return pins.i2cReadBuffer(pADDR, 2)
     }
-
 
 
 
