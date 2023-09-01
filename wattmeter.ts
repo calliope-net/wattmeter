@@ -37,7 +37,7 @@ If you don't have a regulated power supply nor a DC electronic load on the hand,
 [Schaltbild] https://raw.githubusercontent.com/DFRobot/Wiki/master/SEN0291/image/SEN0291_cal2_Arduino(EN).png
 
 
-Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßner im August 2023
+Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßner im August, September 2023
 */ {
     export enum eADDR {
         Wattmeter = 0x45, Wattmeter_x40 = 0x40, Wattmeter_x41 = 0x41, Wattmeter_x44 = 0x44
@@ -53,16 +53,16 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
     }
     //const INA219_CONFIG_RESET = 0x8000 // Config reset register
 
-    let _i2cWriteBufferError: number = 0
+    let i2cWriteBufferError: number = 0 // Fehlercode vom letzten WriteBuffer (0 ist kein Fehler)
 
     //let cal_value: number = 4096 // uint16_t
     //let BusRange: number, Pga: number, Badc: number, Sadc: number, Mode: number // uint8_t
 
 
-    // ========== group="i2c init"
+    // ========== group="Wattmeter Konfiguration"
 
-    //% group="i2c init"
-    //% block="i2c %pADDR init/reset Calibration %calibration_value" weight=8
+    //% group="Wattmeter Konfiguration"
+    //% block="i2c %pADDR beim Start Calibration %calibration_value" weight=8
     //% calibration_value.defl=4096
     export function reset(pADDR: eADDR, calibration_value: number) {
         //write_register(pADDR, eRegister.REG_CONFIG, INA219_CONFIG_RESET) // 0x8000
@@ -70,18 +70,14 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
         writeCALIBRATION(pADDR, calibration_value)
     }
 
-    //% group="i2c init"
-    //% block="i2c %pADDR is connected" weight=6
+    //% group="Wattmeter Konfiguration"
+    //% block="i2c %pADDR i2c connected" weight=6
     export function is_connected(pADDR: eADDR): boolean {
         let bu = Buffer.create(1)
         bu.setUint8(0, 0)
-        _i2cWriteBufferError = pins.i2cWriteBuffer(pADDR, bu)
-        return _i2cWriteBufferError == 0
+        i2cWriteBufferError = pins.i2cWriteBuffer(pADDR, bu)
+        return i2cWriteBufferError == 0
     }
-
-    //% group="i2c init"
-    //% block="i2cError" weight=2
-    export function i2cError() { return _i2cWriteBufferError }
 
 
     //% group="i2c init"
@@ -209,17 +205,23 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
     export function read_register(pADDR: eADDR, register: eRegister): Buffer { // return: Buffer
         let bu = Buffer.create(1)
         bu.setUint8(0, register)
-        _i2cWriteBufferError = pins.i2cWriteBuffer(pADDR, bu, true)
+        i2cWriteBufferError = pins.i2cWriteBuffer(pADDR, bu, true)
         return pins.i2cReadBuffer(pADDR, 2)
     }
+
+
 
 
 
     // ========== group="i2c Adressen"
 
     //% group="i2c Adressen" advanced=true
-    //% block="i2c Adresse von Modul %pADDR"
+    //% block="i2c Adresse von Modul %pADDR" weight=6
     export function i2cAdressen(pADDR: eADDR): number { return pADDR }
+
+    //% group="i2c Adressen" advanced=true
+    //% block="Fehlercode vom letzten WriteBuffer (0 ist kein Fehler)" weight=2
+    export function i2cError() { return i2cWriteBufferError }
 
 
     // ========== private
@@ -228,7 +230,7 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
         let bu = Buffer.create(3)
         bu.setUint8(0, register)
         bu.setNumber(NumberFormat.UInt16BE, 1, value)
-        _i2cWriteBufferError = pins.i2cWriteBuffer(pADDR, bu)
+        i2cWriteBufferError = pins.i2cWriteBuffer(pADDR, bu)
     }
 
 
