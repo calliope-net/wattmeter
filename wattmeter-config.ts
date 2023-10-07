@@ -7,8 +7,9 @@ als ein 16-bit Wert - ohne bitweise Operationen
 
     //% group="i2c Configuration Register" subcategory="Configuration"
     //% block="i2c %pADDR Configuration Register | %pBRNG | Shunt Voltage Gain and Range | %pPG | Bus ADC Resolution/Averaging | %pBADC | Shunt ADC Resolution/Averaging | %pSADC | Operating Mode | %mode"
+    //% pADDR.shadow="wattmeter_eADDR"
     //% mode.defl=wattmeter.eInaMode.shunt_and_bus_vol_con
-    export function config(pADDR: eADDR, pBRNG: eBRNG, pPG: ePG, pBADC: eBADC, pSADC: eSADC, pMODE: eMODE) {
+    export function config(pADDR: number, pBRNG: eBRNG, pPG: ePG, pBADC: eBADC, pSADC: eSADC, pMODE: eMODE) {
         let conf = pBRNG | pPG | pBADC | pSADC | pMODE
         write_register(pADDR, eRegister.REG_CONFIG, conf)
     }
