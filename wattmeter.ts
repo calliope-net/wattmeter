@@ -108,12 +108,16 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
     // ========== group="Messwerte als Text lesen"
 
     export enum eStatuszeile {
+        //% block="V"
+        v,
+        //% block="mA"
+        mA,
         //% block="V | mA"
-        V_mA,
+        v_mA,
         //% block="mV | mW | Ready/Overflow"
         mV_mW,
         //% block="CONFIG | CALIBRATION"
-        CONFIG_CALIBRATION
+        c_c
     }
     //% group="Messwerte als Text lesen"
     //% block="i2c %pADDR Text %nummer"
@@ -121,17 +125,27 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
     //% nummer.min=0 nummer.max=2
     export function statuszeile(pADDR: number, nummer: eStatuszeile): string {
         switch (nummer) {
-            case eStatuszeile.V_mA: {
-                return Math.roundWithPrecision(get_bus_voltage_V(pADDR), 2) + "V "
-                    + get_current_mA(pADDR) + "mA"
+            case eStatuszeile.v: {
+                return Math.roundWithPrecision(get_bus_voltage_V(pADDR), 1) + "V"
+            }
+            case eStatuszeile.mA: {
+                return get_current_mA(pADDR) + "mA"
+            }
+            case eStatuszeile.v_mA: {
+                return statuszeile(pADDR, eStatuszeile.v) + " "
+                    + statuszeile(pADDR, eStatuszeile.mA)
                     + (getStatus(pADDR, eStatus.OVF) ? " OV" : "")
+
+                //return Math.roundWithPrecision(get_bus_voltage_V(pADDR), 2) + "V "
+                //    + get_current_mA(pADDR) + "mA"
+                //    + (getStatus(pADDR, eStatus.OVF) ? " OV" : "")
             }
             case eStatuszeile.mV_mW: {
                 return get_shunt_voltage_mV(pADDR) + "mV "
                     + get_power_mW(pADDR) + "mW "
                     + (read_Register_UInt16BE(pADDR, eRegister.REG_BUSVOLTAGE) & 0x07)
             }
-            case eStatuszeile.CONFIG_CALIBRATION: {
+            case eStatuszeile.c_c: {
                 return read_register(pADDR, eRegister.REG_CONFIG).toHex() + " "
                     + read_register(pADDR, eRegister.REG_CALIBRATION).toHex() + " "
                     + read_Register_mit_Vorzeichen_Int16BE(pADDR, eRegister.REG_CALIBRATION)
