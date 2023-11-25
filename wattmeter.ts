@@ -126,7 +126,7 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
     export function statuszeile(pADDR: number, nummer: eStatuszeile): string {
         switch (nummer) {
             case eStatuszeile.v: {
-                return Math.roundWithPrecision(get_bus_voltage_V(pADDR), 1) + "V"
+                return Math.roundWithPrecision(get_bus_voltage_V(pADDR), 2) + " V"
             }
             case eStatuszeile.mA: {
                 return get_current_mA(pADDR) + "mA"
